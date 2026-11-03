@@ -1,0 +1,13 @@
+{
+  "name": "triangle-riso-scan",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node build.mjs && node test/render.mjs",
+    "pack": "node build.mjs && sh scripts/pack.sh"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.11.1"
+  }
+}

@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Triangle Riso Scan</title>
+<style>
+  :root {
+    --bg: var(--figma-color-bg, #ffffff);
+    --bg2: var(--figma-color-bg-secondary, #f5f5f5);
+    --bg3: var(--figma-color-bg-tertiary, #e6e6e6);
+    --fg: var(--figma-color-text, #1e1e1e);
+    --fg2: var(--figma-color-text-secondary, #6b6b6b);
+    --fg3: var(--figma-color-text-tertiary, #a0a0a0);
+    --line: var(--figma-color-border, #e6e6e6);
+    --brand: var(--figma-color-bg-brand, #0d99ff);
+    --on-brand: var(--figma-color-text-onbrand, #ffffff);
+    --danger: var(--figma-color-text-danger, #d93025);
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 11px/1.4 Inter, -apple-system, "Segoe UI", sans-serif; }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+  button, select, input, textarea { font: inherit; color: inherit; }
+  .scroll { flex: 1; overflow-y: auto; padding: 12px 12px 4px; }
+  header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+  header b { font-size: 12px; font-weight: 600; }
+  header span { color: var(--fg2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; text-align: right; font-family: var(--mono); font-size: 10px; }
+
+  .stage { position: relative; background: #202121; border-radius: 6px; display: flex; align-items: center; justify-content: center; min-height: 220px; overflow: hidden; }
+  .stage canvas#preview { display: block; max-width: 100%; max-height: 340px; cursor: crosshair; }
+  .stage .empty { color: #8c8c8c; text-align: center; padding: 24px; line-height: 1.6; }
+  .stage .busy { position: absolute; top: 8px; left: 8px; background: rgba(210,210,210,.95); color: #111; border-radius: 6px; padding: 3px 8px; font-size: 10px; display: none; align-items: center; gap: 6px; }
+  .stage .busy.on { display: flex; }
+  .stage .busy i { width: 6px; height: 6px; border-radius: 50%; background: #111; animation: pulse .85s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .25; transform: scale(.65); } }
+  .loupe { position: absolute; right: 8px; bottom: 8px; width: 150px; height: 150px; border-radius: 6px; border: 1px solid rgba(255,255,255,.25); box-shadow: 0 2px 10px rgba(0,0,0,.4); display: none; image-rendering: pixelated; background: #fff; }
+  .loupe.on { display: block; }
+  .hint { color: var(--fg3); font-size: 10px; margin: 5px 0 0; display: flex; justify-content: space-between; gap: 8px; }
+  .hint .err { color: var(--danger); }
+
+  h3 { font-size: 11px; font-weight: 600; margin: 14px 0 6px; display: flex; align-items: center; justify-content: space-between; }
+  h3 small { font-weight: 400; color: var(--fg2); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { border: 1px solid var(--line); background: var(--bg); border-radius: 5px; padding: 4px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .chip:hover { background: var(--bg2); }
+  .chip.on { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); }
+  .chip .x { color: var(--fg3); font-size: 12px; line-height: 1; }
+  .chip .x:hover { color: var(--danger); }
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+  .seg button { border: 0; background: var(--bg); padding: 5px 0; cursor: pointer; border-left: 1px solid var(--line); }
+  .seg button:first-child { border-left: 0; }
+  .seg button.on { background: var(--bg3); font-weight: 600; }
+  .tex { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .tex button { aspect-ratio: 1; border: 1px solid var(--line); border-radius: 5px; background: var(--bg2) center/cover; cursor: pointer; padding: 0; color: var(--fg2); font-size: 10px; }
+  .tex button.on { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+  label.field { display: flex; flex-direction: column; gap: 3px; color: var(--fg2); }
+  select { border: 1px solid var(--line); border-radius: 5px; background: var(--bg); padding: 4px 6px; width: 100%; }
+  .toggles { display: flex; gap: 14px; margin-top: 8px; }
+  .toggles label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+
+  details { border-top: 1px solid var(--line); margin-top: 10px; }
+  details > summary { list-style: none; cursor: pointer; padding: 8px 0 4px; font-weight: 600; display: flex; justify-content: space-between; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::after { content: "+"; color: var(--fg2); }
+  details[open] > summary::after { content: "–"; }
+  .slider { display: grid; grid-template-columns: 112px 1fr 44px; align-items: center; gap: 8px; padding: 2px 0; }
+  .slider span { color: var(--fg2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slider span.changed { color: var(--fg); }
+  .slider input[type=range] { width: 100%; accent-color: var(--brand); }
+  .slider input[type=number] { width: 44px; border: 1px solid transparent; border-radius: 4px; background: transparent; text-align: right; font-family: var(--mono); font-size: 10px; padding: 2px; }
+  .slider input[type=number]:hover, .slider input[type=number]:focus { border-color: var(--line); outline: none; }
+  .group-title { color: var(--fg3); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; margin: 8px 0 2px; }
+
+  .inline { display: flex; gap: 6px; margin-top: 6px; }
+  .inline input { flex: 1; border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; background: var(--bg); }
+  textarea { width: 100%; height: 90px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); font-family: var(--mono); font-size: 10px; padding: 6px; resize: vertical; }
+  .btn { border: 1px solid var(--line); background: var(--bg); border-radius: 5px; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
+  .btn:hover { background: var(--bg2); }
+  .btn.primary { background: var(--brand); color: var(--on-brand); border-color: var(--brand); font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn:disabled { opacity: .45; cursor: default; filter: none; }
+  .link { background: none; border: 0; color: var(--fg2); cursor: pointer; padding: 0; text-decoration: underline; }
+
+  footer { border-top: 1px solid var(--line); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; background: var(--bg); }
+  footer .line { display: flex; gap: 6px; align-items: center; }
+  footer .line select { flex: 1; }
+  footer .primary { flex: 1; }
+  .progress { height: 2px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .progress i { display: block; height: 100%; width: 0; background: var(--brand); transition: width .15s; }
+  .resize { position: fixed; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize; opacity: .5; background: linear-gradient(135deg, transparent 50%, var(--fg3) 50%, transparent 60%, transparent 70%, var(--fg3) 70%, transparent 80%); }
+</style>
+</head>
+<body>
+  <div class="scroll">
+    <header><b>Triangle Riso Scan</b><span id="selName">nessun livello</span></header>
+
+    <div class="stage" id="stage">
+      <div class="empty" id="empty">Seleziona un livello, un frame o un'immagine<br>e diventa una scansione stampata.</div>
+      <canvas id="preview" hidden></canvas>
+      <canvas class="loupe" id="loupe" width="150" height="150"></canvas>
+      <div class="busy" id="busy"><i></i><span id="busyText">Stampa in corso…</span></div>
+    </div>
+    <div class="hint"><span id="hint">Passa sopra l'anteprima: dettaglio 1:1 · tieni premuto: originale</span><span id="dims"></span></div>
+
+    <h3>Preset <small><button class="link" id="savePresetBtn">salva attuale</button></small></h3>
+    <div class="chips" id="presets"></div>
+    <div class="inline" id="saveRow" hidden>
+      <input id="presetName" placeholder="Nome del preset" maxlength="40">
+      <button class="btn" id="presetOk">Salva</button>
+      <button class="btn" id="presetCancel">Annulla</button>
+    </div>
+
+    <h3>Texture della carta</h3>
+    <div class="tex" id="textures"></div>
+
+    <h3>Risoluzione</h3>
+    <div class="seg" id="dpi">
+      <button data-dpi="300">300 DPI</button><button data-dpi="600">600 DPI</button><button data-dpi="900">900 DPI</button>
+    </div>
+
+    <div class="row">
+      <label class="field">Stampante<select id="mode"></select></label>
+      <label class="field">Fusione texture<select id="blend"></select></label>
+    </div>
+    <div class="row">
+      <label class="field">Fibra della carta<select id="cloud"></select></label>
+      <div></div>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="bw"> Fotocopia B/N</label>
+      <label><input type="checkbox" id="finalBW"> Bianco e nero finale</label>
+    </div>
+
+    <details id="sliderBox" open>
+      <summary>Regolazioni</summary>
+      <div id="sliders"></div>
+      <div class="inline"><button class="btn" id="resetBtn">Torna a Standard</button></div>
+    </details>
+
+    <details id="jsonBox">
+      <summary>Preset in JSON (per altri file e progetti)</summary>
+      <textarea id="json" spellcheck="false" placeholder='Incolla qui un preset (anche quelli esportati dal sito) e premi «Importa».'></textarea>
+      <div class="inline">
+        <button class="btn" id="copyJson">Copia l'attuale</button>
+        <button class="btn" id="importJson">Importa</button>
+      </div>
+    </details>
+    <div style="height:8px"></div>
+  </div>
+
+  <footer>
+    <div class="progress"><i id="progress"></i></div>
+    <div class="line">
+      <select id="placement" title="Dove mettere la scansione">
+        <option value="above">Sopra l'originale</option>
+        <option value="beside">Accanto all'originale</option>
+      </select>
+      <button class="btn" id="downloadBtn" disabled title="Scarica il PNG alla risoluzione piena">PNG</button>
+    </div>
+    <div class="line">
+      <button class="btn primary" id="applyBtn" disabled>Crea scansione</button>
+    </div>
+  </footer>
+  <div class="resize" id="resize"></div>
+
+  <script src="shaders.js"></script>
+  <script src="engine.js"></script>
+  <script src="presets.js"></script>
+  <script src="ui.js"></script>
+</body>
+</html>

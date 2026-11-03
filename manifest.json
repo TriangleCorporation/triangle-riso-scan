@@ -1,0 +1,10 @@
+{
+  "name": "Triangle Riso Scan",
+  "id": "triangle-riso-scan",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": { "allowedDomains": ["none"] }
+}

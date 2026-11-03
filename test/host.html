@@ -1,0 +1,39 @@
+<!doctype html>
+<!-- Finto Figma: carica dist/ui.html in un iframe e risponde ai suoi messaggi come farebbe code.js. -->
+<html><body style="margin:0;background:#2c2c2c">
+<iframe id="f" src="../dist/ui.html" style="width:400px;height:760px;border:0;background:#fff"></iframe>
+<script>
+const W = 1600, H = 1100;
+function scene(w, h) {
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const x = c.getContext("2d"), k = w / W;
+  x.fillStyle = "#fff"; x.fillRect(0, 0, w, h);
+  const g = x.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0, "#ff3b30"); g.addColorStop(0.35, "#ffcc00"); g.addColorStop(0.7, "#34c759"); g.addColorStop(1, "#0a84ff");
+  x.fillStyle = g; x.fillRect(80 * k, 80 * k, 900 * k, 620 * k);
+  const r = x.createRadialGradient(530 * k, 390 * k, 10 * k, 530 * k, 390 * k, 300 * k);
+  r.addColorStop(0, "rgba(255,255,255,.95)"); r.addColorStop(1, "rgba(20,20,60,.0)");
+  x.fillStyle = r; x.fillRect(80 * k, 80 * k, 900 * k, 620 * k);
+  const sw = ["#00aeef", "#ec008c", "#fff200", "#000000", "#e53935", "#43a047", "#1e88e5"];
+  sw.forEach((col, i) => { x.fillStyle = col; x.beginPath(); x.arc((1100 + (i % 3) * 150) * k, (160 + Math.floor(i / 3) * 150) * k, 60 * k, 0, 7); x.fill(); });
+  for (let i = 0; i < 32; i++) { const v = Math.round((i / 31) * 255); x.fillStyle = `rgb(${v},${v},${v})`; x.fillRect((80 + i * 45) * k, 760 * k, 45 * k, 90 * k); }
+  x.fillStyle = "#111"; x.font = `700 ${120 * k}px Helvetica, Arial`; x.fillText("FOLDER SCAN", 80 * k, 1000 * k);
+  x.font = `400 ${36 * k}px Georgia, serif`; x.fillText("Every scan becomes an artifact. 27", 1000 * k, 1000 * k);
+  return c;
+}
+window.scene = scene;
+window.applied = [];
+window.addEventListener("message", async (e) => {
+  const m = e.data && e.data.pluginMessage; if (!m) return;
+  const f = document.getElementById("f").contentWindow;
+  const reply = (msg) => f.postMessage({ pluginMessage: msg }, "*");
+  if (m.type === "ready") reply({ type: "selection", items: [{ id: "1:2", name: "Test poster", w: W, h: H, hasScan: false, isScan: false, settings: null }] });
+  else if (m.type === "export") {
+    const k = m.longEdge / Math.max(W, H), c = scene(Math.round(W * k), Math.round(H * k));
+    const blob = await new Promise((r) => c.toBlob(r, "image/png"));
+    reply({ type: "source", reqId: m.reqId, bytes: new Uint8Array(await blob.arrayBuffer()), w: W, h: H });
+  } else if (m.type === "storage-get") reply({ type: "storage", reqId: m.reqId, value: null });
+  else if (m.type === "apply") { window.applied.push({ size: m.bytes.length, settings: m.settings, placement: m.placement }); reply({ type: "applied", reqId: m.reqId, layerId: "9:9" }); }
+});
+</script>
+</body></html>
